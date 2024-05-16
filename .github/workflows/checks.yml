@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Login into Docker Hub
-        users: docker/login-action@v1
+        uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKERGHUB_USER }}
           password: ${{ secrets.DOCKERGHUB_TOKEN }}
