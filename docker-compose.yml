@@ -14,9 +14,9 @@ services:
       sh -c "python manage.py runserver 0.0.0.0:8000"
     environment:
       - DB_HOST=db
-      - DB_NAME=devdb
-      - DB_USER=devuser
-      - DB_PASS=pswd
+      - DB_NAME=test
+      - DB_USER=root
+      - DB_PASS=root
     depends_on:
       - db
 
@@ -25,9 +25,9 @@ services:
     volumes:
       - dev-db-data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=devdb
-      - POSTGRES_USER=devuser
-      - POSTGRES_PASSWORD=pswd 
+      - POSTGRES_DB=test
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root 
 
 volumes:
   dev-db-data:
