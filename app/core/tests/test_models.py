@@ -8,8 +8,8 @@ from .. import models
 class ModelTests(TestCase):
 
     def test_create_user_with_email_success(self):
-        email = "testing@example.com"
-        password = "testpwd123"
+        email = "test@example.com"
+        password = "testpassword123"
         user = get_user_model().objects.create_user(email=email, password=password)
 
         self.assertEqual(user.email, email)
@@ -24,28 +24,30 @@ class ModelTests(TestCase):
         ]
 
         for email, expected_email in emails:
-            user = get_user_model().objects.create_user(email, password="pwd123")
+            user = get_user_model().objects.create_user(email, password="passsword123")
             self.assertEqual(user.email, expected_email)
 
     def test_no_email_raises_error(self):
         with self.assertRaises(ValueError):
-            get_user_model().objects.create_user(email="", password="pwd123")
+            get_user_model().objects.create_user(email="", password="passsword123")
 
     def test_create_superuser(self):
         user = get_user_model().objects.create_superuser(
-            email="testing@example.com", password="pwd123"
+            email="test@example.com", password="passsword123"
         )
 
         self.assertTrue(user.is_superuser)
         self.assertTrue(user.is_staff)
 
     def test_create_recipe(self):
-        user = get_user_model().objects.create_user(email='testing@example.com', password='pwd123')
-        recipe = models.Recipe(
+        user = get_user_model().objects.create_user(
+            email="test@example.com", password="passsword123"
+        )
+        recipe = models.Recipe.objects.create(
             user=user,
-            title='Sample recipe name',
+            title="Sample recipe name",
             time_minutes=5,
-            price=Decimal('5.50'),
+            price=Decimal("5.50"),
         )
 
         self.assertEqual(str(recipe), recipe.title)

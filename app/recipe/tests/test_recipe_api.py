@@ -10,15 +10,17 @@ from ..serializers import RecipeSerializer
 
 from core.models import Recipe  # noqa
 
-RECIPES_URL = reverse('recipe:recipe-list')
+import uuid
+
+RECIPES_URL = reverse("recipe:recipe-list")
 
 
 def create_recipe(user, **params):
     defaults = {
-        'title': 'Sample recipe title',
-        'time_minutes': 22,
-        'price': Decimal('5.25'),
-        'link': 'http://example.com/recipe.pdf',
+        "title": "Sample recipe title",
+        "time_minutes": 22,
+        "price": Decimal("5.25"),
+        "link": "http://example.com/recipe.pdf",
     }
     defaults.update(params)
 
@@ -40,9 +42,8 @@ class PrivateTestRecipeApi(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = get_user_model().objects.create_user(
-            email='maintesting@example.com',
-            password='pwd123',
-            name='Test User',
+            email=f"user{uuid.uuid4()}@example.com",
+            password="password123",
         )
         self.client.force_authenticate(user=self.user)
 
@@ -52,21 +53,24 @@ class PrivateTestRecipeApi(TestCase):
 
         res = self.client.get(RECIPES_URL)
 
-        recipes = Recipe.objects.all().order_by('_id')
+        recipes = Recipe.objects.filter(user=self.user).order_by("-id")
         serializer = RecipeSerializer(recipes, many=True)
+
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
 
     def test_get_recipes_single_user(self):
         other_user = get_user_model().objects.create_user(
-            email='otheruser@example.com',
-            password='otherpwd',
+            email=f"otheruser{uuid.uuid4()}@example.com",
+            password="otherpassword",
         )
         recipe1 = create_recipe(user=other_user)
         recipe2 = create_recipe(user=self.user)
 
         res = self.client.get(RECIPES_URL)
 
+        response_recipe_ids = [recipe["id"] for recipe in res.data]
+
         self.assertEqual(len(res.data), 1)
-        self.assertNotIn(recipe1, res.data)
-        self.assertIn(recipe2, res.data)
+        self.assertNotIn(recipe1.id, response_recipe_ids)
+        self.assertIn(recipe2.id, response_recipe_ids)
