@@ -1,18 +1,22 @@
-from unittest import TestCase
 from decimal import Decimal
 
 from rest_framework import status
 from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.test import TestCase
 
-from ..serializers import RecipeSerializer
+import sys
 
+sys.path.append("..")
+from recipe.serializers import RecipeSerializer, RecipeDetailSerializer  # noqa
 from core.models import Recipe  # noqa
 
-import uuid
-
 RECIPES_URL = reverse("recipe:recipe-list")
+
+
+def detail_url(recipe_id):
+    return reverse("recipe:recipe-detail", args=[recipe_id])
 
 
 def create_recipe(user, **params):
@@ -20,7 +24,8 @@ def create_recipe(user, **params):
         "title": "Sample recipe title",
         "time_minutes": 22,
         "price": Decimal("5.25"),
-        "link": "http://example.com/recipe.pdf",
+        "description": "Sample description",
+        "link": "http://example.com/recipe.pdf",  # noqa
     }
     defaults.update(params)
 
@@ -38,30 +43,31 @@ class PublicRecipeAPITests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
-class PrivateTestRecipeApi(TestCase):
+class PrivateRecipeAPITests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = get_user_model().objects.create_user(
-            email=f"user{uuid.uuid4()}@example.com",
+            email="test@example.com",
             password="password123",
         )
         self.client.force_authenticate(user=self.user)
 
-    def test_get_recipes_success(self):
+    #
+    def test_retrieve_recipes(self):
         create_recipe(user=self.user)
         create_recipe(user=self.user)
 
         res = self.client.get(RECIPES_URL)
 
-        recipes = Recipe.objects.filter(user=self.user).order_by("-id")
+        recipes = Recipe.objects.all().order_by("-id")
         serializer = RecipeSerializer(recipes, many=True)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
 
-    def test_get_recipes_single_user(self):
+    def test_recipe_list_limited_to_user(self):
         other_user = get_user_model().objects.create_user(
-            email=f"otheruser{uuid.uuid4()}@example.com",
+            email="otheruser@example.com",
             password="otherpassword",
         )
         recipe1 = create_recipe(user=other_user)
@@ -69,8 +75,19 @@ class PrivateTestRecipeApi(TestCase):
 
         res = self.client.get(RECIPES_URL)
 
-        response_recipe_ids = [recipe["id"] for recipe in res.data]
+        recipes = Recipe.objects.filter(user=self.user)
+        serializer = RecipeSerializer(recipes, many=True)
 
-        self.assertEqual(len(res.data), 1)
-        self.assertNotIn(recipe1.id, response_recipe_ids)
-        self.assertIn(recipe2.id, response_recipe_ids)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data, serializer.data)
+
+    def test_get_recipe_detail(self):
+        recipe = create_recipe(user=self.user)
+        url = detail_url(recipe.id)
+
+        res = self.client.get(url)
+
+        serializer = RecipeDetailSerializer(recipe)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data, serializer.data)
